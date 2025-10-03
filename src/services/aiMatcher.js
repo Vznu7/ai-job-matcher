@@ -1,7 +1,7 @@
 // AI Matching service using Hugging Face
 // For development: API keys are set here, for production: use environment variables
 const HF_API_URL = 'https://api-inference.huggingface.co/models'
-const HF_API_TOKEN = import.meta.env.VITE_HF_API_TOKEN || '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'
+const HF_API_TOKEN = import.meta.env.VITE_HF_API_TOKEN || 'demo_hf_token'
 
 // Enhanced models for different tasks
 const MODELS = {

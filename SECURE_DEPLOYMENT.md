@@ -30,10 +30,10 @@ npx vercel --prod
    - Add these variables:
 
 ```
-VITE_ADZUNA_APP_ID=47ed81e1
-VITE_ADZUNA_API_KEY=89a425c14ddd6a99d4f3b1bbc89a3868
-VITE_RAPIDAPI_KEY=c404bc1120msh945084d4c9348bdp1c4782jsnc9f6236d2a96
-VITE_HF_API_TOKEN=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
+VITE_ADZUNA_APP_ID=your_adzuna_app_id
+VITE_ADZUNA_API_KEY=your_adzuna_api_key
+VITE_RAPIDAPI_KEY=your_rapidapi_key
+VITE_HF_API_TOKEN=your_huggingface_token
 ```
 
 3. **Redeploy** (Vercel will automatically redeploy with new env vars)

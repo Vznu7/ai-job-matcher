@@ -1,7 +1,7 @@
 // JSearch API service - Better coverage for India
 // For development: API keys are set here, for production: use environment variables
 const JSEARCH_API_URL = 'https://jsearch.p.rapidapi.com/search'
-const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY || 'c404bc1120msh945084d4c9348bdp1c4782jsnc9f6236d2a96'
+const RAPIDAPI_KEY = import.meta.env.VITE_RAPIDAPI_KEY || 'demo_rapidapi_key'
 const RAPIDAPI_HOST = 'jsearch.p.rapidapi.com'
 
 export async function fetchJobsWithJSearch(expectedRole, skills, preferredLocation = 'India') {

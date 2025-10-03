@@ -1,7 +1,7 @@
 // Adzuna API service
 // For development: API keys are set here, for production: use environment variables
-const ADZUNA_APP_ID = import.meta.env.VITE_ADZUNA_APP_ID || '47ed81e1'
-const ADZUNA_API_KEY = import.meta.env.VITE_ADZUNA_API_KEY || '89a425c14ddd6a99d4f3b1bbc89a3868'
+const ADZUNA_APP_ID = import.meta.env.VITE_ADZUNA_APP_ID || 'demo_app_id'
+const ADZUNA_API_KEY = import.meta.env.VITE_ADZUNA_API_KEY || 'demo_api_key'
 const ADZUNA_BASE_URL = 'https://api.adzuna.com/v1/api/jobs'
 
 export async function fetchJobs(expectedRole, skills, location = 'in') {
