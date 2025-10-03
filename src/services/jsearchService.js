@@ -6,9 +6,15 @@ const RAPIDAPI_HOST = 'jsearch.p.rapidapi.com'
 
 export async function fetchJobsWithJSearch(expectedRole, skills, preferredLocation = 'India') {
   try {
+    console.log('🔑 JSearch API Key check:', {
+      key: RAPIDAPI_KEY ? RAPIDAPI_KEY.substring(0, 10) + '...' : 'NOT SET',
+      isDemoKey: RAPIDAPI_KEY === 'demo_rapidapi_key',
+      envVar: import.meta.env.VITE_RAPIDAPI_KEY ? 'SET' : 'NOT SET'
+    })
+    
     if (RAPIDAPI_KEY === 'demo_rapidapi_key') {
-      console.log('JSearch API key not configured, using mock data')
-      return getLocationMockJobs(expectedRole, skills, preferredLocation)
+      console.log('❌ JSearch API key not configured')
+      throw new Error('JSearch API key not configured')
     }
 
     // Map location to country codes and include location in query
@@ -28,19 +34,30 @@ export async function fetchJobsWithJSearch(expectedRole, skills, preferredLocati
     }
     
     const countryCode = locationMap[preferredLocation.toLowerCase()] || 'IN'
-    const query = `${expectedRole} ${preferredLocation} ${skills.slice(0, 2).join(' ')}`
+    const query = `${expectedRole} ${skills.slice(0, 2).join(' ')}`
+    
+    console.log('🔍 JSearch Query Details:', {
+      expectedRole,
+      skills: skills.slice(0, 2),
+      preferredLocation,
+      countryCode,
+      finalQuery: query
+    })
     
     const params = new URLSearchParams({
       query: query,
       page: '1',
       num_pages: '1',
       country: countryCode,
-      employment_types: 'FULLTIME,PARTTIME,CONTRACTOR',
-      job_requirements: 'under_3_years_experience,more_than_3_years_experience,no_experience',
+      employment_types: 'FULLTIME',
       date_posted: 'all'
     })
 
-    const response = await fetch(`${JSEARCH_API_URL}?${params}`, {
+    const apiUrl = `${JSEARCH_API_URL}?${params}`
+    console.log('🌐 Calling JSearch API:', apiUrl)
+    console.log('🔑 Using API Key:', RAPIDAPI_KEY.substring(0, 10) + '...')
+
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'X-RapidAPI-Key': RAPIDAPI_KEY,
@@ -48,16 +65,64 @@ export async function fetchJobsWithJSearch(expectedRole, skills, preferredLocati
       }
     })
 
+    console.log('📡 JSearch API Response Status:', response.status, response.statusText)
+
     if (!response.ok) {
       throw new Error(`JSearch API error: ${response.status}`)
     }
 
     const data = await response.json()
+    console.log('📊 JSearch API Response Data:', {
+      status: data.status,
+      request_id: data.request_id,
+      parameters: data.parameters,
+      data_count: data.data ? data.data.length : 0
+    })
     
     if (!data.data || data.data.length === 0) {
-      console.log('No jobs found from JSearch, using mock data')
-      return getLocationMockJobs(expectedRole, skills, preferredLocation)
+      console.log('⚠️ No jobs found from JSearch API with current query')
+      console.log('📋 Full response:', data)
+      
+      // Try a simpler query as fallback
+      console.log('🔄 Trying simpler query...')
+      const simpleQuery = expectedRole
+      const simpleParams = new URLSearchParams({
+        query: simpleQuery,
+        page: '1',
+        num_pages: '1',
+        country: countryCode
+      })
+      
+      const fallbackResponse = await fetch(`${JSEARCH_API_URL}?${simpleParams}`, {
+        method: 'GET',
+        headers: {
+          'X-RapidAPI-Key': RAPIDAPI_KEY,
+          'X-RapidAPI-Host': RAPIDAPI_HOST
+        }
+      })
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json()
+        if (fallbackData.data && fallbackData.data.length > 0) {
+          console.log(`✅ Fallback query found ${fallbackData.data.length} jobs`)
+          return fallbackData.data.map(job => ({
+            id: job.job_id || Math.random().toString(),
+            title: job.job_title,
+            company: job.employer_name,
+            location: job.job_city ? `${job.job_city}, ${job.job_state || 'India'}` : 'India',
+            description: job.job_description || 'No description available',
+            salary: formatSalary(job.job_min_salary, job.job_max_salary),
+            url: job.job_apply_link || job.job_google_link || '#',
+            created: job.job_posted_at_datetime_utc || new Date().toISOString(),
+            source: 'JSearch API'
+          })).slice(0, 20)
+        }
+      }
+      
+      return []
     }
+
+    console.log(`✅ JSearch found ${data.data.length} jobs, processing...`)
 
     return data.data.map(job => ({
       id: job.job_id || Math.random().toString(),
@@ -73,7 +138,7 @@ export async function fetchJobsWithJSearch(expectedRole, skills, preferredLocati
 
   } catch (error) {
     console.error('Error fetching jobs from JSearch:', error)
-    return getLocationMockJobs(expectedRole, skills, preferredLocation)
+    return []
   }
 }
 
@@ -144,7 +209,7 @@ function getLocationMockJobs(expectedRole, skills, preferredLocation) {
       location: data.locations[0],
       description: `Exciting ${expectedRole} opportunity in ${preferredLocation}. Required skills: ${skills.slice(0, 3).join(', ')}. Join our innovative team working on cutting-edge projects.`,
       salary: '₹8,00,000 - ₹14,00,000',
-      url: '#',
+      url: 'https://careers.example.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Location Specific'
     },
@@ -155,7 +220,7 @@ function getLocationMockJobs(expectedRole, skills, preferredLocation) {
       location: data.locations[1] || data.locations[0],
       description: `Senior ${expectedRole} role in ${preferredLocation}. Experience with ${skills.slice(1, 4).join(', ')} preferred. Great career growth opportunities.`,
       salary: '₹12,00,000 - ₹18,00,000',
-      url: '#',
+      url: 'https://careers.example.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Location Specific'
     },
@@ -166,7 +231,7 @@ function getLocationMockJobs(expectedRole, skills, preferredLocation) {
       location: preferredLocation.toLowerCase() === 'remote' ? 'Remote, India' : `${data.locations[0]} (Remote Option)`,
       description: `Remote ${expectedRole} position. Work with ${skills.slice(0, 2).join(', ')} technologies. Flexible work arrangements in ${preferredLocation}.`,
       salary: '₹10,00,000 - ₹16,00,000',
-      url: '#',
+      url: 'https://careers.example.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Location Specific'
     },
@@ -177,7 +242,7 @@ function getLocationMockJobs(expectedRole, skills, preferredLocation) {
       location: data.locations[0],
       description: `Leadership role for ${expectedRole} in ${preferredLocation}. Team management and ${skills.slice(2, 5).join(', ')} expertise required.`,
       salary: '₹18,00,000 - ₹25,00,000',
-      url: '#',
+      url: 'https://careers.example.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Location Specific'
     },
@@ -188,7 +253,7 @@ function getLocationMockJobs(expectedRole, skills, preferredLocation) {
       location: data.locations[1] || data.locations[0],
       description: `Growth-focused ${expectedRole} position in ${preferredLocation}. Work with ${skills.slice(1, 3).join(', ')} in a dynamic environment.`,
       salary: '₹15,00,000 - ₹22,00,000',
-      url: '#',
+      url: 'https://careers.example.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Location Specific'
     }

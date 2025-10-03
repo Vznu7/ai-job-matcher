@@ -1,17 +1,32 @@
-// Multi-API job service for better coverage in India
+// Multi-API job service for comprehensive job coverage
 import { fetchJobs } from './jobService.js'
 import { fetchJobsWithJSearch } from './jsearchService.js'
+import { fetchLinkedInJobs } from './linkedinService.js'
+import { fetchIndeedJobs } from './indeedService.js'
+import { fetchNaukriJobs } from './naukriService.js'
+import { fetchMonsterJobs, fetchGlassdoorJobs, fetchAngelListJobs, fetchDiceJobs } from './additionalJobsService.js'
 
 // The Muse API - No auth required
 const MUSE_API_URL = 'https://www.themuse.com/api/public/jobs'
 
 export async function fetchJobsFromMultipleSources(expectedRole, skills, preferredLocation = 'India') {
-  console.log(`🔍 Fetching jobs from multiple sources for location: ${preferredLocation}...`)
+  console.log(`🔍 Fetching jobs from ALL major job sources for location: ${preferredLocation}...`)
+  console.log(`🎯 Role: ${expectedRole}, Skills: ${skills.slice(0, 3).join(', ')}`)
   
   const jobPromises = [
+    // Major job boards
     fetchAdzunaJobs(expectedRole, skills, preferredLocation),
     fetchJSearchJobs(expectedRole, skills, preferredLocation),
-    fetchMuseJobs(expectedRole, skills, preferredLocation)
+    fetchLinkedInJobsWrapper(expectedRole, skills, preferredLocation),
+    fetchIndeedJobsWrapper(expectedRole, skills, preferredLocation),
+    fetchNaukriJobsWrapper(expectedRole, skills, preferredLocation),
+    
+    // Additional sources
+    fetchMuseJobs(expectedRole, skills, preferredLocation),
+    fetchMonsterJobsWrapper(expectedRole, skills, preferredLocation),
+    fetchGlassdoorJobsWrapper(expectedRole, skills, preferredLocation),
+    fetchAngelListJobsWrapper(expectedRole, skills, preferredLocation),
+    fetchDiceJobsWrapper(expectedRole, skills, preferredLocation)
   ]
 
   try {
@@ -20,29 +35,35 @@ export async function fetchJobsFromMultipleSources(expectedRole, skills, preferr
     let allJobs = []
     
     results.forEach((result, index) => {
-      if (result.status === 'fulfilled' && result.value.length > 0) {
-        const source = ['Adzuna', 'JSearch', 'The Muse'][index]
-        console.log(`✅ ${source}: Found ${result.value.length} jobs`)
-        
-        // Log first job URL to verify real data
-        if (result.value[0]) {
-          console.log(`   📎 Sample URL from ${source}:`, result.value[0].url)
-          console.log(`   🏢 Sample source:`, result.value[0].source)
-          console.log(`   📋 Sample job:`, {
-            title: result.value[0].title,
-            company: result.value[0].company,
-            url: result.value[0].url,
-            source: result.value[0].source
-          })
+      const sources = [
+        'Adzuna', 'JSearch', 'LinkedIn', 'Indeed', 'Naukri.com', 
+        'The Muse', 'Monster', 'Glassdoor', 'AngelList', 'Dice'
+      ]
+      const source = sources[index]
+      
+      if (result.status === 'fulfilled') {
+        if (result.value.length > 0) {
+          console.log(`✅ ${source}: Found ${result.value.length} jobs`)
+          
+          // Log first job URL to verify real data
+          if (result.value[0]) {
+            console.log(`   📎 Sample URL from ${source}:`, result.value[0].url)
+            console.log(`   🏢 Sample source:`, result.value[0].source)
+            console.log(`   📋 Sample job:`, {
+              title: result.value[0].title,
+              company: result.value[0].company,
+              url: result.value[0].url,
+              source: result.value[0].source
+            })
+          }
+          
+          allJobs = [...allJobs, ...result.value]
+        } else {
+          console.log(`⚠️ ${source}: API succeeded but returned 0 jobs`)
         }
-        
-        allJobs = [...allJobs, ...result.value]
       } else {
-        const source = ['Adzuna', 'JSearch', 'The Muse'][index]
-        console.log(`❌ ${source}: No jobs found`)
-        if (result.status === 'rejected') {
-          console.log(`   Error:`, result.reason)
-        }
+        console.log(`❌ ${source}: API failed`)
+        console.log(`   Error:`, result.reason)
       }
     })
 
@@ -50,16 +71,28 @@ export async function fetchJobsFromMultipleSources(expectedRole, skills, preferr
     const uniqueJobs = removeDuplicateJobs(allJobs)
     
     if (uniqueJobs.length === 0) {
-      console.log('📝 No jobs from APIs, using comprehensive mock data')
-      return getComprehensiveMockJobs(expectedRole, skills, preferredLocation)
+      console.log('📝 No jobs found from any APIs')
+      return []
     }
 
     console.log(`🎯 Total unique jobs found: ${uniqueJobs.length}`)
-    return uniqueJobs.slice(0, 20) // Limit to 20 best matches
+    console.log(`📊 Job distribution by source:`)
+    
+    // Count jobs by source
+    const sourceCount = {}
+    uniqueJobs.forEach(job => {
+      sourceCount[job.source] = (sourceCount[job.source] || 0) + 1
+    })
+    
+    Object.entries(sourceCount).forEach(([source, count]) => {
+      console.log(`   ${source}: ${count} jobs`)
+    })
+    
+    return uniqueJobs.slice(0, 50) // Increased limit for more comprehensive results
 
   } catch (error) {
     console.error('Error fetching from multiple sources:', error)
-    return getComprehensiveMockJobs(expectedRole, skills, preferredLocation)
+    return []
   }
 }
 
@@ -82,42 +115,59 @@ async function fetchAdzunaJobs(expectedRole, skills, preferredLocation) {
     }
     
     const countryCode = locationMap[preferredLocation.toLowerCase()] || 'in'
-    return await fetchJobs(expectedRole, skills, countryCode)
+    const jobs = await fetchJobs(expectedRole, skills, countryCode)
+    console.log(`✅ Adzuna returned ${jobs.length} real jobs`)
+    return jobs
   } catch (error) {
-    console.error('Adzuna API failed:', error)
+    console.error('❌ Adzuna API failed:', error)
     return []
   }
 }
 
 async function fetchJSearchJobs(expectedRole, skills, preferredLocation) {
   try {
-    return await fetchJobsWithJSearch(expectedRole, skills, preferredLocation)
+    const jobs = await fetchJobsWithJSearch(expectedRole, skills, preferredLocation)
+    console.log(`✅ JSearch returned ${jobs.length} real jobs`)
+    return jobs
   } catch (error) {
-    console.error('JSearch API failed:', error)
+    console.error('❌ JSearch API failed:', error)
     return []
   }
 }
 
 async function fetchMuseJobs(expectedRole, skills, preferredLocation) {
   try {
+    console.log('🎭 Attempting to fetch from The Muse API...')
     const query = encodeURIComponent(`${expectedRole} ${skills.slice(0, 2).join(' ')}`)
-    const response = await fetch(`${MUSE_API_URL}?category=Engineering&location=India&page=0&descending=true&api_key=public`)
+    
+    // Try the public API endpoint without authentication first
+    const response = await fetch(`${MUSE_API_URL}?category=Engineering&location=${encodeURIComponent(preferredLocation)}&page=0&descending=true`)
+    
+    console.log('🎭 Muse API Response Status:', response.status, response.statusText)
     
     if (!response.ok) {
-      throw new Error('Muse API failed')
-    }
-
-    const data = await response.json()
-    
-    if (!data.results || data.results.length === 0) {
+      console.log('⚠️ Muse API failed, skipping this source')
       return []
     }
 
+    const data = await response.json()
+    console.log('🎭 Muse API Response:', {
+      results_count: data.results ? data.results.length : 0,
+      page_count: data.page_count,
+      total: data.total
+    })
+    
+    if (!data.results || data.results.length === 0) {
+      console.log('⚠️ No jobs found from Muse API')
+      return []
+    }
+
+    console.log(`✅ Muse found ${data.results.length} jobs, processing...`)
     return data.results.map(job => ({
       id: job.id.toString(),
       title: job.name,
       company: job.company.name,
-      location: job.locations?.[0]?.name || 'India',
+      location: job.locations?.[0]?.name || preferredLocation,
       description: job.contents || 'No description available',
       salary: 'Competitive salary',
       url: job.refs.landing_page,
@@ -126,7 +176,85 @@ async function fetchMuseJobs(expectedRole, skills, preferredLocation) {
     })).slice(0, 10)
 
   } catch (error) {
-    console.error('Muse API failed:', error)
+    console.error('❌ Muse API failed:', error)
+    return []
+  }
+}
+
+// Wrapper functions for new job services
+async function fetchLinkedInJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchLinkedInJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ LinkedIn returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ LinkedIn API failed:', error)
+    return []
+  }
+}
+
+async function fetchIndeedJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchIndeedJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ Indeed returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ Indeed API failed:', error)
+    return []
+  }
+}
+
+async function fetchNaukriJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchNaukriJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ Naukri returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ Naukri API failed:', error)
+    return []
+  }
+}
+
+async function fetchMonsterJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchMonsterJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ Monster returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ Monster API failed:', error)
+    return []
+  }
+}
+
+async function fetchGlassdoorJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchGlassdoorJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ Glassdoor returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ Glassdoor API failed:', error)
+    return []
+  }
+}
+
+async function fetchAngelListJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchAngelListJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ AngelList returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ AngelList API failed:', error)
+    return []
+  }
+}
+
+async function fetchDiceJobsWrapper(expectedRole, skills, preferredLocation) {
+  try {
+    const jobs = await fetchDiceJobs(expectedRole, skills, preferredLocation)
+    console.log(`✅ Dice returned ${jobs.length} real jobs`)
+    return jobs
+  } catch (error) {
+    console.error('❌ Dice API failed:', error)
     return []
   }
 }
@@ -188,7 +316,7 @@ function getComprehensiveMockJobs(expectedRole, skills, preferredLocation = 'Ind
     location: jobData.location,
     description: `${expectedRole} role at ${jobData.company} in ${preferredLocation}. Skills: ${skills.slice(0, 3).join(', ')}. Excellent growth opportunities.`,
     salary: jobData.salary,
-    url: '#',
+    url: 'https://careers.example.com/',
     created: new Date().toISOString(),
     source: 'Mock Data - Location Specific'
   }))

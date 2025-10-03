@@ -8,14 +8,16 @@ export async function fetchJobs(expectedRole, skills, location = 'in') {
   try {
     console.log('🔧 Adzuna API Check:', {
       app_id: ADZUNA_APP_ID,
-      api_key: ADZUNA_API_KEY ? 'SET' : 'NOT SET',
-      is_demo: ADZUNA_APP_ID === 'demo_app_id'
+      api_key: ADZUNA_API_KEY ? ADZUNA_API_KEY.substring(0, 10) + '...' : 'NOT SET',
+      is_demo: ADZUNA_APP_ID === 'demo_app_id',
+      envAppId: import.meta.env.VITE_ADZUNA_APP_ID ? 'SET' : 'NOT SET',
+      envApiKey: import.meta.env.VITE_ADZUNA_API_KEY ? 'SET' : 'NOT SET'
     })
     
     // Use mock data if API keys are not configured
     if (ADZUNA_APP_ID === 'demo_app_id' || ADZUNA_API_KEY === 'demo_api_key') {
-      console.log('⚠️ Using Adzuna mock data - API keys not configured')
-      return getMockJobs(expectedRole, skills)
+      console.log('❌ Adzuna API keys not configured')
+      throw new Error('Adzuna API keys not configured')
     }
     
     const query = `${expectedRole} ${skills.slice(0, 3).join(' ')}`
@@ -49,7 +51,7 @@ export async function fetchJobs(expectedRole, skills, location = 'in') {
     }))
   } catch (error) {
     console.error('Error fetching jobs:', error)
-    return getMockJobs(expectedRole, skills)
+    return []
   }
 }
 
@@ -62,18 +64,17 @@ function getMockJobs(expectedRole, skills) {
       location: 'Bangalore, Karnataka',
       description: `We are looking for a talented ${expectedRole} to join our team in Bangalore. Required skills include ${skills.slice(0, 3).join(', ')} and more. Great opportunity for career growth.`,
       salary: '₹12,00,000 - ₹18,00,000',
-      url: '#',
+      url: 'https://www.infosys.com/careers/',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     },
     {
-      id: '2',
       title: `${expectedRole} - Remote`,
       company: 'Flipkart',
       location: 'Remote (India)',
       description: `Remote ${expectedRole} position with competitive benefits. Experience with ${skills.slice(1, 4).join(', ')} preferred. Work from anywhere in India.`,
       salary: '₹10,00,000 - ₹15,00,000',
-      url: '#',
+      url: 'https://www.flipkartcareers.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     },
@@ -84,7 +85,7 @@ function getMockJobs(expectedRole, skills) {
       location: 'Mumbai, Maharashtra',
       description: `Leadership role for experienced ${expectedRole} in Mumbai. Must have expertise in ${skills.slice(0, 2).join(', ')} and team management. Leading global projects.`,
       salary: '₹20,00,000 - ₹25,00,000',
-      url: '#',
+      url: 'https://www.tcs.com/careers',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     },
@@ -95,7 +96,7 @@ function getMockJobs(expectedRole, skills) {
       location: 'Hyderabad, Telangana',
       description: `Entry-level ${expectedRole} position perfect for recent graduates in Hyderabad. Training provided in ${skills.slice(2, 5).join(', ')}. Great learning opportunities.`,
       salary: '₹4,00,000 - ₹6,00,000',
-      url: '#',
+      url: 'https://careers.wipro.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     },
@@ -106,7 +107,7 @@ function getMockJobs(expectedRole, skills) {
       location: 'Gurgaon, Haryana',
       description: `Product team ${expectedRole} role in Gurgaon with flexible schedule. Expertise in ${skills.slice(1, 3).join(', ')} required. Work on India's favorite food app.`,
       salary: '₹15,00,000 - ₹22,00,000',
-      url: '#',
+      url: 'https://www.zomato.com/careers',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     },
@@ -117,7 +118,7 @@ function getMockJobs(expectedRole, skills) {
       location: 'Noida, Uttar Pradesh',
       description: `Fintech ${expectedRole} position at India's leading digital payments company. Experience with ${skills.slice(0, 4).join(', ')} preferred.`,
       salary: '₹12,00,000 - ₹20,00,000',
-      url: '#',
+      url: 'https://jobs.paytm.com/',
       created: new Date().toISOString(),
       source: 'Mock Data - Adzuna'
     }

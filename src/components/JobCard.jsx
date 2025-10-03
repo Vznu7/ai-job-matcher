@@ -135,13 +135,20 @@ export default function JobCard({ job, index }) {
                 console.log('🔗 Job URL:', job.url)
                 console.log('🏢 Job source:', job.source)
                 
-                // Simple logic: if URL exists and is not just '#', use it directly
-                if (job.url && job.url !== '#') {
-                  console.log('✅ Opening job URL directly:', job.url)
+                // Use the real job application URL from the API
+                if (job.url && job.url !== '#' && !job.url.includes('careers.example.com')) {
+                  console.log('✅ Opening real job application URL:', job.url)
                   window.open(job.url, '_blank')
                 } else {
-                  console.log('❌ No valid URL found, this is mock data')
-                  alert(`This is demo data for: ${job.company} - ${job.title}\n\nReal jobs from APIs will have direct application links.`)
+                  console.log('⚠️ Using fallback - this might be mock data')
+                  // Only show alert if it's clearly mock data
+                  if (job.source && job.source.includes('Mock Data')) {
+                    alert(`This is demo data for: ${job.company} - ${job.title}\n\nReal jobs from APIs will have direct application links.`)
+                  } else {
+                    // Fallback to company search
+                    const fallbackUrl = `https://www.google.com/search?q=${encodeURIComponent(job.company + ' careers ' + job.title)}`
+                    window.open(fallbackUrl, '_blank')
+                  }
                 }
               }}
             >
